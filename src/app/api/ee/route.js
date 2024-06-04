@@ -17,7 +17,7 @@ export async function GET() {
     await authenticate(key);
 
     // Image collection of sentinel-2
-    const col = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED");
+    const col = ee.ImageCollection("NOAA/CDR/OISST/V2_1");
 
     // Geojson geometry of the are we want
     const geojson = {
@@ -34,34 +34,39 @@ export async function GET() {
     };
 
     // Turn the geojson geometry to ee.Geometry for filtering earth engine collection
-    const geometry = ee.Geometry(geojson);
-
+    // const geometry = ee.Geometry(geojson);
+    const geometry = ee.Geometry.Rectangle([-180, -90, 180, 90]);
     // Range of date for filter
-    const start = "2023-05-01";
-    const end = "2023-07-31";
+    const start = "2022-01-01";
+    const end = "2023-01-01";
 
     // Filter by date and bounds
-    const filtered = col.filterBounds(geometry).filterDate(start, end);
+    const filtered = col.select('sst').filterBounds(geometry).filterDate(start, end);
 
-    // Apply cloud masking
-    const cloudMasked = filtered.map((image) => {
-      const scl = image.select("SCL");
-      const mask = scl
-        .eq(3)
-        .or(scl.gte(7).and(scl.lte(10)))
-        .eq(0);
-      return image.select(["B.*"]).updateMask(mask);
-    });
+    // // Apply cloud masking
+    // const cloudMasked = filtered.map((image) => {
+    //   const scl = image.select("sst");
+    //   const mask = scl
+    //     .eq(3)
+    //     .or(scl.gte(7).and(scl.lte(10)))
+    //     .eq(0);
+    //   return image.select(["B.*"]).updateMask(mask);
+    // });
 
     // Create a median composite of the image
-    const median = cloudMasked.median();
+    const median = filtered.median();
 
     // Image visualization parameter
     // Using NIR-SWIR1-SWIR2 composite
+    // const vis = {
+    //   min: [1000, 500, 250],
+    //   max: [4000, 3000, 2000],
+    //   bands: ["B8", "B11", "B12"],
+    // };
     const vis = {
-      min: [1000, 500, 250],
-      max: [4000, 3000, 2000],
-      bands: ["B8", "B11", "B12"],
+      min: -2,
+      max: 30,
+      palette: ['blue', 'cyan', 'yellow', 'red']
     };
 
     // Get url format of the image

@@ -1,19 +1,21 @@
 "use client";
 
+import React from 'react'; 
 import {
   ScreenSpaceEventHandler,
   Viewer,
   CameraFlyTo,
-  ScreenSpaceEvent,
   CesiumComponentRef,
+  Cesium3DTileset,
 } from 'resium';
 import {
   Ion,
-  ScreenSpaceEventType,
+  Rectangle,
+  EllipsoidTerrainProvider,
   UrlTemplateImageryProvider,
   ImageryLayer as CesiumImageryLayer,
-  EllipsoidTerrainProvider,
-  Rectangle
+  CesiumTerrainProvider,
+  Viewer as CesiumViewer, // Import CesiumViewer type
 } from 'cesium';
 import 'cesium/Build/Cesium/Widgets/widgets.css';
 
@@ -21,18 +23,30 @@ import { bbox } from "@turf/turf";
 import { useEffect, useRef, useState } from "react";
 
 
-Ion.defaultAccessToken = process.env.NEXT_PUBLIC_CESIUM_TOKEN
+Ion.defaultAccessToken = process.env.NEXT_PUBLIC_CESIUM_TOKEN!; // Non-null assertion
 
-export default function Home() {
-  // const ref = useRef<CesiumComponentRef>(null);
-  const [layerData, setLayerData] = useState(null);
-  const [viewer, setViewer] = useState(null);
+interface LayerData {
+  urlFormat: string;
+  geojson: any;
+}
+
+interface ThreeDData {
+  dataInfo: { assetId: string };
+  threeDCoordinates: any;
+  cesiumHeading: number;
+  cesiumPitch: number;
+  cesiumRoll: number;
+}
+
+export function ThreeDMap() {
+  const [layerData, setLayerData] = useState<LayerData | null>(null);
+  const [viewer, setViewer] = useState<CesiumViewer | null>(null);
+  const [threeD, setThreeD] = useState<ThreeDData | boolean>(true); // Union type
 
   const defaultWMSBounds = [
-    [-10, 110],
-    [10, 120],
-  ];
-
+    [40, -10],
+    [58, 10],
+  ]
   const cesiumStartCoordinates = Rectangle.fromDegrees(
     defaultWMSBounds[0][1],
     defaultWMSBounds[0][0],
@@ -41,6 +55,7 @@ export default function Home() {
   );
 
   const terrainProvider = new EllipsoidTerrainProvider({});
+
 
   async function fetchData() {
     try {
@@ -73,6 +88,31 @@ export default function Home() {
     }
   }, [layerData]);
 
+  async function handleTerrainLayer() {
+    if (viewer && typeof threeD === "object") { // Type narrowing for threeD
+      const terrainUrl = await CesiumTerrainProvider.fromIonAssetId(
+        parseInt(threeD.dataInfo.assetId),
+      );
+
+      viewer.terrainProvider = terrainUrl;
+      viewer.camera.flyTo({
+        destination: threeD.threeDCoordinates, 
+        orientation: {
+          heading: threeD.cesiumHeading,
+          pitch: threeD.cesiumPitch,
+          roll: threeD.cesiumRoll,
+        },
+      });
+      setThreeD(false)
+    }
+  }
+
+  useEffect(() => {
+    if (threeD && viewer) {
+      handleTerrainLayer()
+    }
+  }, [threeD])
+
   return (
     <Viewer
       full
@@ -81,7 +121,7 @@ export default function Home() {
       // ref={ref}
       ref={(ref) => {
         if (ref && !viewer) {
-          setViewer(ref.cesiumElement);
+          setViewer(ref.cesiumElement as CesiumViewer);
         }
       }}
       infoBox={true}

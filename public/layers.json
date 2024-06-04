@@ -1,0 +1,32 @@
+{
+  "Remote Sensing": {
+    "layerNames": {
+      "sst": {
+        "url": "NOAA/CDR/OISST/V2_1",
+        "selectName": "sst",
+        "dataType": "GEE",
+        "content": "Information about the layer",
+        "vis": {
+          "min": -2,
+          "max": 30,
+          "palette": ["blue", "cyan", "yellow", "red"]
+        },
+        "geometry": [-180, -90, 180, 90],
+        "dateSelect": true
+      },
+      "chlorophyll": {
+        "url": "NASA/OCEANDATA/MODIS-Aqua/L3SMI",
+        "selectName": "chlor_a'",
+        "dataType": "GEE",
+        "content": "Information about the layer",
+        "vis": {
+          "min": 0.01,
+          "max": 20,
+          "palette": ["blue", "green", "red"]
+        },
+        "geometry": [-180, -90, 180, 90],
+        "dateSelect": true
+      }
+    }
+  }
+}
